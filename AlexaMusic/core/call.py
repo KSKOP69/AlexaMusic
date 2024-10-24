@@ -608,8 +608,11 @@ class Call(PyTgCalls):
             if isinstance(update, StreamAudioEnded):
                 await self.change_stream(client, update.chat_id)
 
-        @self.one.on_update(fl.call_participant(GroupCallParticipant.Action.JOINED | GroupCallParticipant.Action.LEFT))
-        @self.two.on_update(fl.call_participant(GroupCallParticipant.Action.JOINED | GroupCallParticipant.Action.LEFT))
+        @self.one.on_update(fl.call_participant(GroupCallParticipant.Action.JOINED | GroupCallParticipant.Action.LEFT | GroupCallParticipant.Action.UPDATED))
+        @self.two.on_update(fl.call_participant(GroupCallParticipant.Action.JOINED | GroupCallParticipant.Action.LEFT | GroupCallParticipant.Action.UPDATED))
+        @self.three.on_update(fl.call_participant(GroupCallParticipant.Action.JOINED | GroupCallParticipant.Action.LEFT | GroupCallParticipant.Action.UPDATED))
+        @self.four.on_update(fl.call_participant(GroupCallParticipant.Action.JOINED | GroupCallParticipant.Action.LEFT | GroupCallParticipant.Action.UPDATED))
+        @self.five.on_update(fl.call_participant(GroupCallParticipant.Action.JOINED | GroupCallParticipant.Action.LEFT | GroupCallParticipant.Action.UPDATED))
         async def participants_change_handler(client, update: Update):
             if not isinstance(
                 update, GroupCallParticipant.Action.JOINED
