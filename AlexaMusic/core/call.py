@@ -27,7 +27,7 @@ from pytgcalls.exceptions import (
     GroupCallNotFound,
     NotInCallError,
 )
-from pytgcalls.types import ChatUpdate, MediaStream, Update
+from pytgcalls.types import ChatUpdate, MediaStream, Update, GroupCallParticipant
 from pytgcalls.types.stream import StreamAudioEnded
 
 import config
@@ -46,6 +46,7 @@ from AlexaMusic.utils.database import (
     remove_active_chat,
     remove_active_video_chat,
     set_loop,
+    is_autoend,
 )
 from AlexaMusic.utils.exceptions import AssistantErr
 from AlexaMusic.utils.inline.play import stream_markup, telegram_markup
@@ -54,6 +55,9 @@ from AlexaMusic.utils.thumbnails import gen_thumb
 from AlexaMusic.utils.theme import check_theme
 from strings import get_string
 
+
+autoend = {}
+counter = {}
 
 async def _clear_(chat_id):
     db[chat_id] = []
@@ -288,6 +292,13 @@ class Call(PyTgCalls):
         await music_on(chat_id)
         if video:
             await add_active_video_chat(chat_id)
+        if await is_autoend():
+            counter[chat_id] = {}
+            users = len(await assistant.get_participants(chat_id))
+            if users == 1:
+                autoend[chat_id] = datetime.now() + timedelta(
+                    minutes=1
+                )
 
     async def change_stream(self, client, chat_id):
         check = db.get(chat_id)
@@ -598,5 +609,39 @@ class Call(PyTgCalls):
             if isinstance(update, StreamAudioEnded):
                 await self.change_stream(client, update.chat_id)
 
+        @self.one.on_update(fl.call_participant(GroupCallParticipant.Action.JOINED | GroupCallParticipant.Action.LEFT))
+        @self.two.on_update(fl.call_participant(GroupCallParticipant.Action.JOINED | GroupCallParticipant.Action.LEFT))
+        async def participants_change_handler(client, update: Update):
+            if not isinstance(
+                update, JoinedGroupCallParticipant
+            ) and not isinstance(update, LeftGroupCallParticipant):
+                return
+            chat_id = update.chat_id
+            users = counter.get(chat_id)
+            if not users:
+                try:
+                    got = len(await client.get_participants(chat_id))
+                except:
+                    return
+                counter[chat_id] = got
+                if got == 1:
+                    autoend[chat_id] = datetime.now() + timedelta(
+                        minutes=1
+                    )
+                    return
+                autoend[chat_id] = {}
+            else:
+                final = (
+                    users + 1
+                    if isinstance(update, JoinedGroupCallParticipant)
+                    else users - 1
+                )
+                counter[chat_id] = final
+                if final == 1:
+                    autoend[chat_id] = datetime.now() + timedelta(
+                        minutes=1
+                    )
+                    return
+                autoend[chat_id] = {}
 
 Alexa = Call()
