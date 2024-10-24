@@ -52,7 +52,6 @@ from AlexaMusic.utils.exceptions import AssistantErr
 from AlexaMusic.utils.inline.play import stream_markup, telegram_markup
 from AlexaMusic.utils.stream.autoclear import auto_clean
 from AlexaMusic.utils.thumbnails import gen_thumb
-from AlexaMusic.utils.theme import check_theme
 from strings import get_string
 
 
@@ -613,8 +612,8 @@ class Call(PyTgCalls):
         @self.two.on_update(fl.call_participant(GroupCallParticipant.Action.JOINED | GroupCallParticipant.Action.LEFT))
         async def participants_change_handler(client, update: Update):
             if not isinstance(
-                update, JoinedGroupCallParticipant
-            ) and not isinstance(update, LeftGroupCallParticipant):
+                update, GroupCallParticipant.Action.JOINED
+            ) and not isinstance(update, GroupCallParticipant.Action.LEFT):
                 return
             chat_id = update.chat_id
             users = counter.get(chat_id)
@@ -633,7 +632,7 @@ class Call(PyTgCalls):
             else:
                 final = (
                     users + 1
-                    if isinstance(update, JoinedGroupCallParticipant)
+                    if isinstance(update, GroupCallParticipant.Action.JOINED)
                     else users - 1
                 )
                 counter[chat_id] = final
